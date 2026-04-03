@@ -1,0 +1,652 @@
+/* ==========================================
+   1. GLOBAL LAYOUT & LOGIC
+   ========================================== */
+:root {
+    --transition-speed: 0.8s;
+}
+
+
+body {
+    margin: 0;
+    transition: background-color var(--transition-speed) ease;
+    min-height: 100vh;
+}
+
+.dashboard-wrapper {
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    width: 98vw;
+    margin: 0 auto;
+}
+
+.controls-section {
+    padding: 20px;
+    text-align: center;
+    z-index: 10;
+}
+
+.map-container {
+    height: 75vh; /* Adjusted slightly to prevent overflow */
+    display: flex;
+    align-items: flex-start; 
+    justify-content: center;
+    padding-top: 10px;
+    
+}
+
+#svg2 {
+    max-height: 100%;
+    width: auto;
+    will-change: transform, opacity; /* Helps browser performance */
+    transition: fill var(--transition-speed) ease, 
+                stroke var(--transition-speed) ease, 
+                opacity 0.4s ease;
+    
+}
+
+#map-title, #map-description {
+    transition: all var(--transition-speed) ease;
+}
+
+/* Optional: Add a subtle 'loading' cursor during transitions */
+body.is-swapping {
+    cursor: wait;
+}
+/* ==========================================
+   2. ERA STYLES (Themed)
+   ========================================== */
+
+/* --- SCRAMBLE (Past / Default) --- */
+.era-scramble {
+    background-color: #f4ece1; /* Parchment feel */
+    font-family: 'Georgia', serif;
+}
+
+.era-scramble #map-title {
+    font-weight: 700;
+    font-style: italic;
+    color: #3e2723;
+}
+
+.era-scramble #svg2 {
+    fill: #e0d1b1;
+    stroke: #8e7d5e;
+}
+
+/* --- PRESENT --- */
+.era-present {
+    background-color: #a7defc; /* Soft, modern ocean blue */
+    font-family: 'Helvetica', 'Arial', sans-serif;
+    letter-spacing: -0.2px;
+}
+
+
+.era-present #map-title {
+    font-weight: 300;
+    color: #2c3e50;
+}
+
+.era-present #svg2 {
+    fill: #bdc3c7;
+    stroke: #ffffff;
+}
+
+/* --- DARK --- */
+.era-dark {
+    background-color: #0a0a0a;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+}
+
+.era-dark #map-title {
+    font-weight: 900;
+    color: #006eff;
+    text-shadow: 0 0 8px #006eff;
+    text-transform: uppercase;
+}
+
+.era-dark #map-description {
+    color: #4294ff;
+}
+
+.era-dark #svg2 {
+    fill: #111111;
+    stroke: #4294ff;
+    filter: drop-shadow(0 0 5px rgba(66, 148, 255, 0.5));
+}
+
+#map-title, #map-description {
+    /* Slow opacity for era switching, but fast filter/transform for glitches */
+    transition: 
+        opacity var(--transition-speed) ease, 
+        filter 0.05s ease, 
+        transform 0.05s ease, 
+        color var(--transition-speed) ease;
+}
+
+/* Container Layout */
+.era-button {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    transition: opacity 0.6s ease-in-out; /* Match the JS timing */
+    margin-top: 20px;
+}
+
+/* Base Button Reset */
+.era-button button {
+    background: none;
+    border: none;
+    padding: 5px 0;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.4s ease;
+}
+
+/* --- THEME 1: SCRAMBLE (The Navigator's Ink) --- */
+.era-scramble .era-button button {
+    font-family: 'Georgia', serif; /* Use a classic serif */
+    color: #3d2b1f; /* Dried ink color */
+    font-style: italic;
+    opacity: 0.6;
+}
+
+.era-scramble .era-button button:hover {
+    opacity: 1;
+    letter-spacing: 1px; /* Slight expansion on hover */
+}
+
+
+
+/* --- THEME 1: SCRAMBLE (Hand-Drawn Logic) --- */
+.era-scramble .era-button button {
+    font-family: 'Georgia', serif;
+    color: #3d2b1f;
+    font-style: italic;
+    opacity: 0.6;
+    position: relative; /* Required for the absolute line */
+    background: none;
+    border: none;
+}
+
+/* The "Ink Line" - Hidden by default */
+.era-scramble .era-button button::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #3d2b1f;
+    /* This is the magic: start at 0 width */
+    transform: scaleX(0); 
+    /* Adjust this for "center-out" (center) or "left-to-right" (left) */
+    transform-origin: bottom center; 
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover: Line draws in */
+.era-scramble .era-button button:hover::after {
+    transform: scaleX(0.7); /* Partial line on hover */
+    opacity: 1;
+}
+
+/* Active: Line draws fully and stays */
+.era-scramble .era-button button.active {
+    opacity: 1;
+    font-weight: bold;
+}
+
+.era-scramble .era-button button.active::after {
+    transform: scaleX(1); /* Full line when active */
+    opacity: 1;
+}
+
+
+
+/* --- THEME 2: PRESENT (The Corporate Interface) --- */
+
+/* The Container - Modern spacing */
+.era-present .era-button {
+    gap: 15px;
+}
+
+.era-present .era-button button {
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: rgba(70, 70, 70, 0.7); /* Slightly faded white */
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    padding: 10px 25px;
+    background: rgba(255, 255, 255, 0.05); /* Transparent glass */
+    border: 1px solid rgba(92, 92, 92, 0.1);
+    border-radius: 50px; /* Capsule shape */
+    backdrop-filter: blur(5px); /* Frosting effect */
+    transition: all 0.3s ease;
+}
+
+.era-present .era-button button:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* The Active State - A solid glowing pill */
+.era-present .era-button button.active {
+    background: #ffffff;
+    color: #000000; /* High contrast black text */
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+    border-color: #ffffff;
+}
+
+
+/* --- THEME 3: IN THE DARK (The Terminal) --- */
+
+.era-dark .era-button {
+    gap: 10px;
+}
+
+.era-dark .era-button button {
+    font-family: 'Courier New', Courier, monospace;
+    background: #000;
+    color: #4294ff; /* Your neon blue */
+    border: 1px solid #4294ff;
+    border-radius: 0; /* Sharp edges are more "brutalist" */
+    padding: 10px 20px;
+    text-transform: uppercase;
+    font-size: 1rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s step-end; /* Sharp transitions, no smooth fading */
+}
+
+/* The Hover State: A slight color inversion */
+.era-dark .era-button button:hover {
+    background: rgba(66, 148, 255, 0.1);
+    box-shadow: 0 0 8px #4294ff;
+    cursor: crosshair; /* Makes it feel like a targeting system */
+}
+
+/* The Active State: Constant flickering glow */
+.era-dark .era-button button.active {
+    background: #4294ff;
+    color: #000;
+    box-shadow: 0 0 15px #4294ff;
+    animation: neon-flicker 1.5s infinite;
+}
+
+/* Neon Flicker Animation */
+@keyframes neon-flicker {
+    0%, 18%, 22%, 25%, 53%, 57%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 15px #4294ff;
+    }
+    20%, 24%, 55% {
+        opacity: 0.7;
+        box-shadow: 0 0 2px #4294ff;
+    }
+}
+
+/* --- 1. TIMELINE CONTAINER & BASE ELEMENTS --- */
+.timeline-sidebar {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 5;
+}
+
+.track-segment { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+}
+
+.line { 
+    width: 2px; 
+    height: 30px; 
+    transition: all 0.8s ease-in-out; 
+}
+
+.node { 
+    width: 10px; 
+    height: 10px; 
+    border-radius: 50%; 
+    transition: all 0.5s ease; 
+}
+
+.era-header { 
+    font-size: 0.7rem; 
+    text-transform: uppercase; 
+    margin: 10px 0; 
+    writing-mode: vertical-rl; 
+    transform: rotate(180deg); 
+    transition: color 0.8s ease;
+}
+
+/* --- 2. THEME 1: SCRAMBLE (Hand-Drawn Ink) --- */
+.era-scramble .line { 
+    background: #3d2b1f; 
+    width: 1px; 
+    opacity: 0.4;
+}
+.era-scramble .node { 
+    background: #3d2b1f; 
+    border-radius: 2px; 
+    transform: rotate(45deg); 
+}
+.era-scramble .era-header { 
+    color: #3d2b1f; 
+    opacity: 0.6; 
+}
+
+/* --- 3. THEME 2: PRESENT (Clean Industrial) --- */
+.era-present .line { 
+    background: #ffffff; 
+    width: 2px;
+    opacity: 0.8;
+}
+.era-present .node { 
+    background: #ffffff; 
+}
+.era-present .era-header { 
+    color: #2c3e50; 
+}
+
+/* --- 4. THEME 3: ??? (Broken Digital Glitch) --- */
+.era-dark .dark-track {
+    filter: blur(0.3px);
+    /* The constant vibrating glitch */
+    animation: sidebar-glitch 0.15s infinite alternate;
+    /* transition: none prevents the JS "Zap" from being slowed down */
+    transition: none !important; 
+}
+
+.era-dark .era-header { 
+    color: #4294ff; 
+    text-shadow: 0 0 5px #4294ff;
+}
+
+/* The Blue Broken Line */
+.era-dark .line {
+    background: repeating-linear-gradient(to bottom, #4294ff, #4294ff 4px, transparent 4px, transparent 8px);
+    opacity: 0.8;
+    width: 2px;
+}
+
+/* All nodes flicker red in the ??? timeline */
+/* Only nodes inside a segment explicitly marked as era-dark turn red */
+.track-segment.era-dark .node {
+    background: #ff0055;
+    border-radius: 0;
+    box-shadow: 0 0 8px #ff0055;
+    /*animation: node-flicker 1.5s infinite steps(2);*/
+    animation: none;
+}
+
+/* --- 5. INTERACTIVE STATES --- */
+.node.pulse {
+    transform: scale(1.8);
+}
+
+.era-scramble .node.pulse { box-shadow: 0 0 8px #3d2b1f; }
+.era-present .node.pulse { box-shadow: 0 0 12px #ffffff; }
+.era-dark .node.pulse { 
+    animation: none; 
+    opacity: 1; 
+}
+
+
+/* --- ACTIVE NODE STATES --- */
+
+/* 1. Scramble: Lighter color for clarity */
+.era-scramble .node.active {
+    background-color: #d2b48c; /* Example: A lighter tan/sand color */
+    transform: scale(1.3);
+    transition: all 0.3s ease;
+}
+
+/* 2. Present: Grey/Metallic shift */
+.era-present .node.active {
+    background-color: #a0a0a0; /* Metallic Grey */
+    box-shadow: 0 0 10px #ffffff, inset 0 0 5px #000;
+    transform: scale(1.3);
+}
+
+/* 3. ??? (Dark): The Glitch returns ONLY for the active node */
+.era-dark .dark-track .node.active {
+    opacity: 1;
+    transform: scale(1.5);
+    background: #ff0055;
+    box-shadow: 0 0 15px #ff0055;
+    animation: node-flicker 0.2s infinite steps(2); /* High-speed glitch */
+}
+
+/* --- 6. ANIMATION KEYFRAMES --- */
+
+/* Node flickering for Dark Era */
+@keyframes node-flicker {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(0.9) translateX(-1px); }
+}
+
+/* Constant Sidebar Shaking Glitch */
+@keyframes sidebar-glitch {
+    0% { transform: translateX(0); }
+    20% { transform: translateX(-3px) skewX(1deg); }
+    40% { transform: translateX(3px) scaleY(1.02); }
+    60% { transform: translateX(-2px) skewX(-1deg); }
+    80% { transform: translateX(2px); }
+    100% { transform: translateX(0); }
+}
+
+
+/* The "Zap" state - mirroring your title glitch */
+.glitch-zap {
+    transform: translateX(5px) skewX(-15deg) !important;
+    filter: invert(1) hue-rotate(180deg) brightness(1.5) contrast(2) !important;
+    opacity: 0.8;
+}
+
+/* Ensure the sidebar can snap back quickly */
+.timeline-sidebar {
+    transition: transform 0.05s ease, filter 0.05s ease;
+}
+
+
+#map-tooltip {
+    position: fixed; /* Follows viewport, not the page scroll */
+    pointer-events: none; /* Mouse can't "hit" the tooltip */
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease; /* Only transition opacity, not position! */
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    padding: 6px 12px;
+}
+
+/* Scramble Tooltip: Ink on paper */
+.era-scramble #map-tooltip {
+    background: #f4ece1;
+    color: #3d2b1f;
+    border: 1px solid #dcd0c0;
+    font-family: 'Georgia', serif;
+    font-style: italic;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Present Tooltip: Modern Glass */
+.era-present #map-tooltip {
+    background: rgba(255, 255, 255, 0.9);
+    color: #2c3e50;
+    font-family: 'Helvetica', sans-serif;
+    backdrop-filter: blur(5px);
+    border-radius: 20px;
+}
+
+/* Dark Tooltip: Glitchy Terminal */
+.era-dark #map-tooltip {
+    background: #000;
+    color: #4294ff;
+    border: 1px solid #4294ff;
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
+    box-shadow: 0 0 10px #4294ff;
+}
+/* Update these in your CSS */
+.era-scramble #map-tooltip {
+    color: #3d2b1f !important;
+}
+
+.era-present #map-tooltip {
+    color: #2c3e50 !important;
+}
+
+
+/* Base highlight transition */
+g, path {
+    transition: filter 0.3s ease, fill 0.3s ease;
+}
+
+/* Scramble: Subtle parchment glow */
+.era-scramble .map-highlight {
+    filter: drop-shadow(0 0 8px rgba(61, 43, 31, 0.8));
+}
+
+/* Present: Sharp white industrial glow */
+.era-present .map-highlight {
+    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.9));
+}
+
+/* ??? Era: Aggressive turquoise/red glitch glow */
+.era-dark .map-highlight {
+    filter: drop-shadow(0 0 15px #4294ff) brightness(1.2);
+    outline: 1px dashed #ff0055; /* Adds a broken border to the region */
+}
+
+
+
+/* --- THEMED REGION HIGHLIGHTS --- */
+
+/* 1. Scramble: Antique Parchment Glow (Sepia/Gold) */
+.era-scramble .region-group.map-highlight path,
+.era-scramble .region-group:hover path {
+    fill: #e6ccb2 !important; /* Aged paper color */
+    filter: drop-shadow(0 0 10px rgba(139, 69, 19, 0.6)); /* Warm brown glow */
+    stroke: #3d2b1f;
+    stroke-width: 0.5px;
+}
+
+/* 2. Present: Industrial Blue/White (Corporate Tech) */
+.era-present .region-group.map-highlight path,
+.era-present .region-group:hover path {
+    fill: #ffffff !important; /* Clean white land */
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.9)); /* Sharp white glow */
+    stroke: #2c3e50;
+    stroke-width: 0.8px;
+}
+
+/* 3. ??? (Dark): Corrupted Magenta/Red (Glitch Aura) */
+.era-dark .region-group.map-highlight path,
+.era-dark .region-group:hover path {
+    fill: #ff0055 !important; /* Hot pink/red */
+    filter: drop-shadow(0 0 15px #ff0055); /* Violent neon glow */
+    stroke: #4294ff; /* Contrasting blue border */
+    stroke-width: 1px;
+    outline: 1px dashed #ff0055; /* Adds a "glitched" border effect */
+}
+
+.region-label {
+    fill: white;
+    font-size: 13px;
+    font-weight: bolder;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    pointer-events: none; /* Crucial: clicks go through the text to the map */
+    opacity: 0;
+    transition: opacity 0.3s ease, filter 0.3s ease;
+    text-anchor: middle; /* Centers text on the X coordinate */
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0));
+}
+.era-scramble .region-label {
+    /* rotate(degrees, cx, cy) is tricky in CSS, so we use rotate on the element center */
+    transform: rotate(-8deg);
+    transform-origin: center; /* Ensures it rotates in place */
+    transform-box: fill-box;
+}
+
+
+/* When the region is highlighted via JS, show the label */
+.map-highlight + .region-label, 
+.region-label.active {
+    opacity: 1;
+    filter: drop-shadow(0 0 8px #4294ff);
+}
+
+/* Dark Era styling for labels */
+.era-dark .region-label {
+    fill: #ff0055;
+    font-family: 'Courier New', monospace;
+}
+.info-scroll-container {
+    width: 25vh;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 30%;      /* Only take up 35% of the screen width on the right */
+    z-index: 20;     /* Keep it above the map */
+    pointer-events: none; /* Crucial: clicks "fall through" the empty space to the map */
+}
+.info-block {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  opacity: 0; /* Hidden by default */
+  transform: translateY(40px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+  pointer-events: none; /* Prevents blocking clicks on the map when invisible */
+}
+
+.info-block.active {
+  opacity: 1; /* Fades in when on screen */
+  transform: translateY(0);
+  pointer-events: all;
+}
+
+.content-box {
+  background: rgba(0, 0, 0, 0.85); /* Thematic dark archive look */
+  color: #fff;
+  padding: 2rem;
+  border: 1px solid #444;
+  max-width: 450px;
+}
+
+#svg2 {
+    will-change: transform; /* Prepares the browser for movement */
+    backface-visibility: hidden;
+    transform: translateZ(0); /* Forces GPU rendering */
+}
+
+
+/* This class will be applied by JS when the region is active */
+.region-group.focused path {
+    fill: #ffffff !important; /* Or your theme's highlight color */
+    filter: drop-shadow(0 0 15px rgba(66, 148, 255, 0.9)); /* Strong neon glow */
+    stroke-width: 1.5px;
+    transition: all 0.6s ease;
+}
+
+/* Keep your existing hover logic for the "Intro" full map view */
+.era-scramble .region-group:hover path {
+    fill: #e6ccb2 !important; /* Aged paper color */
+    filter: drop-shadow(0 0 10px rgba(139, 69, 19, 0.6)); /* Warm brown glow */
+    stroke: #3d2b1f;
+    stroke-width: 0.5px;
+}
